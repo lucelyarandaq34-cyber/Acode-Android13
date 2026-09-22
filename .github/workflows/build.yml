@@ -19,24 +19,31 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Fix pnpm + Force SDK 35 + Eruda
+      - run: echo "dangerouslyAllowAllBuilds=true" >>.npmrc
+      - name: Force SDK 35 + Download eruda
         run: |
-          echo "dangerouslyAllowAllBuilds=true" >>.npmrc
           sed -i 's/<preference name="android-compileSdkVersion".*//g' config.xml || true
           sed -i 's/<preference name="android-targetSdkVersion".*//g' config.xml || true
           sed -i 's/<\/widget>/ <preference name="android-compileSdkVersion" value="35" \/>\n <preference name="android-targetSdkVersion" value="35" \/>\n<\/widget>/g' config.xml
           curl -L https://cdn.jsdelivr.net/npm/eruda -o www/eruda.js
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run setup
-      - name: Patch to 35 + Inject Eruda
+      - name: Patch SDK 35 + Inject Eruda in WebView
         run: |
-          mkdir -p platforms/android/app/src/main/assets/www
           cp www/eruda.js platforms/android/app/src/main/assets/www/eruda.js
           find platforms/android -type f -name "*.gradle" -exec sed -i 's/compileSdkVersion.*/compileSdkVersion 35/g; s/compileSdk 3./compileSdk 35/g; s/targetSdkVersion 3./targetSdkVersion 35/g' {} \;
-          find platforms/android -type f -name "gradle.properties" -exec sed -i 's/cdvCompileSdkVersion=.*/cdvCompileSdkVersion=35/g; s/cdvTargetSdkVersion=.*/cdvTargetSdkVersion=35/g' {} \;
-          python3 /tmp/patch_eruda.py || true
+          python3 /tmp/inject.py || true
+          cat > /tmp/inject.py << 'PY'
+          import glob
+          for path in glob.glob("platforms/android/**/SystemWebViewClient.java", recursive=True):
+              with open(path, 'r') as f: s=f.read()
+              if 'eruda.js' in s: continue
+              s = s.replace('super.onPageFinished(view, url);', 'super.onPageFinished(view, url);\n try { if (url!= null && (url.contains(".html") || url.contains("localhost") || url.contains("127.0.0.1"))) { view.evaluateJavascript("(function(){if(window._erudaLoaded)return;window._erudaLoaded=true;var s=document.createElement(\'script\');s.src=\'file:///android_asset/www/eruda.js\';s.onload=function(){eruda.init();};document.head.appendChild(s);})();", null); } } catch(Exception e){}\n')
+              with open(path, 'w') as f: f.write(s)
+          PY
+          python3 /tmp/inject.py
       - run: pnpm run build free d apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Acode-Android13-Eruda
+          name: Acode-Eruda-Final
           path: platforms/android/app/build/outputs/apk/debug/*.apk
