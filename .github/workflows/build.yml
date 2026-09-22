@@ -19,18 +19,16 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Fix pnpm + install SDK 34
-        run: |
-          echo "dangerouslyAllowAllBuilds=true" >>.npmrc
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platforms;android-33"
+      - name: Fix pnpm
+        run: echo "dangerouslyAllowAllBuilds=true" >>.npmrc
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run setup
       - name: Patch compileSdk 34
         run: |
           sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' platforms/android/app/build.gradle
           sed -i 's/compileSdk 33/compileSdk 34/g' platforms/android/app/build.gradle
-          grep -n "compileSdk" platforms/android/app/build.gradle
+          sed -i 's/targetSdkVersion 33/targetSdkVersion 34/g' platforms/android/app/build.gradle || true
+          cat platforms/android/app/build.gradle | grep -n "compileSdk\|targetSdk" | head -n 20
       - run: pnpm run build free d apk
       - uses: actions/upload-artifact@v4
         with:
