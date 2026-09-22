@@ -1,0 +1,21 @@
+{
+  "allFiles": [
+    {
+      "file": "/storage/emulated/0/CodeOnTheGoProjects/Acode/config.xml",
+      "selection": {
+        "end": {
+          "column": 0,
+          "index": 15409,
+          "line": 322
+        },
+        "start": {
+          "column": 0,
+          "index": 15409,
+          "line": 322
+        }
+      }
+    }
+  ],
+  "projectPath": "/storage/emulated/0/CodeOnTheGoProjects/Acode",
+  "selectedFile": "/storage/emulated/0/CodeOnTheGoProjects/Acode/config.xml"
+}
