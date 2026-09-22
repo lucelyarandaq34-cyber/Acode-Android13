@@ -36,7 +36,7 @@ jobs:
           # Fallback final: modifica directamente el servidor httpd si existe
           find platforms/android -name "*.java" -exec sed -i 's|</body>|<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script></body>|g' {} \; || true
       - run: pnpm run build free d apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Acode-Eruda-8158-Fixed
           path: platforms/android/app/build/outputs/apk/debug/*.apk
