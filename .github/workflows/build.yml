@@ -13,12 +13,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-      - name: Fix pnpm builds
+      - name: Fix pnpm
         run: echo "dangerouslyAllowAllBuilds=true" >>.npmrc
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run setup
