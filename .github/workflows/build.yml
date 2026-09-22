@@ -19,29 +19,20 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Fix pnpm + force SDK 34 before setup
+      - name: Force SDK 35 before setup
         run: |
           echo "dangerouslyAllowAllBuilds=true" >>.npmrc
-          # Fuerza en config.xml ANTES de crear android
           sed -i 's/<preference name="android-compileSdkVersion".*//g' config.xml || true
           sed -i 's/<preference name="android-targetSdkVersion".*//g' config.xml || true
-          sed -i 's/<\/widget>/ <preference name="android-compileSdkVersion" value="34" \/>\n <preference name="android-targetSdkVersion" value="34" \/>\n <preference name="android-minSdkVersion" value="21" \/>\n<\/widget>/g' config.xml
-          cat config.xml | grep android-
+          sed -i 's/<\/widget>/ <preference name="android-compileSdkVersion" value="35" \/>\n <preference name="android-targetSdkVersion" value="35" \/>\n<\/widget>/g' config.xml
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run setup
-      - name: Patch compileSdk 34 after setup - FORCE
+      - name: Install Android 35 and patch to 35
         run: |
-          echo "=== BEFORE ==="
-          grep -rn "compileSdkVersion\|cdvCompileSdkVersion\|targetSdkVersion 33" platforms/android --include="*.gradle" --include="*.properties" | head -n 30
-          # Fuerza en TODOS los archivos
-          find platforms/android -type f -name "*.gradle" -exec sed -i 's/compileSdkVersion.*/compileSdkVersion 34/g; s/compileSdk 33/compileSdk 34/g; s/targetSdkVersion 33/targetSdkVersion 34/g' {} \;
-          find platforms/android -type f -name "gradle.properties" -exec sed -i 's/cdvCompileSdkVersion=.*/cdvCompileSdkVersion=34/g; s/cdvTargetSdkVersion=.*/cdvTargetSdkVersion=34/g; s/cdvCompileSdkVersion 33/cdvCompileSdkVersion 34/g' {} \;
-          # Si existe cdv-gradle-config
-          if [ -f platforms/android/cdv-gradle-config.json ]; then
-            sed -i 's/"COMPILE_SDK_VERSION": 33/"COMPILE_SDK_VERSION": 34/g; s/"TARGET_SDK_VERSION": 33/"TARGET_SDK_VERSION": 34/g; s/33/34/g' platforms/android/cdv-gradle-config.json || true
-          fi
-          echo "=== AFTER ==="
-          grep -rn "compileSdkVersion\|COMPILE_SDK" platforms/android --include="*.gradle" --include="*.json" --include="*.properties" | head -n 30
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-35" "build-tools;35.0.0" || true
+          find platforms/android -type f -name "*.gradle" -exec sed -i 's/compileSdkVersion.*/compileSdkVersion 35/g; s/compileSdk 3./compileSdk 35/g; s/targetSdkVersion 3./targetSdkVersion 35/g; s/compileSdkVersion cdvCompileSdkVersion/compileSdkVersion 35/g' {} \;
+          find platforms/android -type f -name "gradle.properties" -exec sed -i 's/cdvCompileSdkVersion=.*/cdvCompileSdkVersion=35/g; s/cdvTargetSdkVersion=.*/cdvTargetSdkVersion=35/g' {} \;
+          grep -R "compileSdkVersion" platforms/android/app/build.gradle | head -n 5
       - run: pnpm run build free d apk
       - uses: actions/upload-artifact@v4
         with:
