@@ -19,22 +19,24 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Force SDK 35 before setup
+      - name: Fix pnpm + Force SDK 35 + Eruda
         run: |
           echo "dangerouslyAllowAllBuilds=true" >>.npmrc
           sed -i 's/<preference name="android-compileSdkVersion".*//g' config.xml || true
           sed -i 's/<preference name="android-targetSdkVersion".*//g' config.xml || true
           sed -i 's/<\/widget>/ <preference name="android-compileSdkVersion" value="35" \/>\n <preference name="android-targetSdkVersion" value="35" \/>\n<\/widget>/g' config.xml
+          curl -L https://cdn.jsdelivr.net/npm/eruda -o www/eruda.js
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run setup
-      - name: Install Android 35 and patch to 35
+      - name: Patch to 35 + Inject Eruda
         run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-35" "build-tools;35.0.0" || true
-          find platforms/android -type f -name "*.gradle" -exec sed -i 's/compileSdkVersion.*/compileSdkVersion 35/g; s/compileSdk 3./compileSdk 35/g; s/targetSdkVersion 3./targetSdkVersion 35/g; s/compileSdkVersion cdvCompileSdkVersion/compileSdkVersion 35/g' {} \;
+          mkdir -p platforms/android/app/src/main/assets/www
+          cp www/eruda.js platforms/android/app/src/main/assets/www/eruda.js
+          find platforms/android -type f -name "*.gradle" -exec sed -i 's/compileSdkVersion.*/compileSdkVersion 35/g; s/compileSdk 3./compileSdk 35/g; s/targetSdkVersion 3./targetSdkVersion 35/g' {} \;
           find platforms/android -type f -name "gradle.properties" -exec sed -i 's/cdvCompileSdkVersion=.*/cdvCompileSdkVersion=35/g; s/cdvTargetSdkVersion=.*/cdvTargetSdkVersion=35/g' {} \;
-          grep -R "compileSdkVersion" platforms/android/app/build.gradle | head -n 5
+          python3 /tmp/patch_eruda.py || true
       - run: pnpm run build free d apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Acode-Android13-fixed
+          name: Acode-Android13-Eruda
           path: platforms/android/app/build/outputs/apk/debug/*.apk
