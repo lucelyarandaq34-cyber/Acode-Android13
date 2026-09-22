@@ -1056,3 +1056,23 @@ function ensureAceCompatApi() {
 
 	window.ace = ace;
 }
+
+
+// --- FIX ANDROID 13 - 1 SOLO PERMISO TODOS LOS ARCHIVOS ---
+document.addEventListener('deviceready', function() {
+  try {
+    if (device.platform === 'Android') {
+      var ver = parseInt(device.version.split('.')[0]);
+      if (ver >= 11) {
+        cordova.plugins.permissions.requestPermission(
+          cordova.plugins.permissions.MANAGE_EXTERNAL_STORAGE,
+          function(){ console.log("Todos OK"); },
+          function(){
+            // Abre Ajustes > Todos los archivos
+            cordova.exec(null,null,"File","requestAllFilesAccess",[]);
+          }
+        );
+      }
+    }
+  } catch(e){ console.log(e); }
+}, false);
