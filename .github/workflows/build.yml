@@ -19,23 +19,18 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - name: Fix pnpm + install SDK 34
         run: |
           echo "dangerouslyAllowAllBuilds=true" >>.npmrc
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platforms;android-33"
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run setup
-      - name: Patch to compileSdk 34 for Android 13/14
+      - name: Patch compileSdk 34
         run: |
-          sed -i 's/cdvsdkversion=.*/cdvsdkversion=34/' platforms/android/build.gradle 2>/dev/null || true
           sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' platforms/android/app/build.gradle
           sed -i 's/compileSdk 33/compileSdk 34/g' platforms/android/app/build.gradle
-          # Forzar config.xml a 34
-          sed -i 's/android-compileSdkVersion.*/android-compileSdkVersion" value="34" \/>/g' config.xml || echo '<preference name="android-compileSdkVersion" value="34" />' >> config.xml
-          sed -i 's/android-targetSdkVersion.*/android-targetSdkVersion" value="34" \/>/g' config.xml || echo '<preference name="android-targetSdkVersion" value="34" />' >> config.xml
-          cat platforms/android/app/build.gradle | grep -A2 compileSdk
+          grep -n "compileSdk" platforms/android/app/build.gradle
       - run: pnpm run build free d apk
       - uses: actions/upload-artifact@v4
         with:
